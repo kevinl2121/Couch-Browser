@@ -1,7 +1,27 @@
 # Couch Browser
 
-A controller-first, private-by-default web browser for Steam Big Picture on Windows.
-Built on WebView2 (Microsoft's Chromium engine). Reads Xbox controllers directly, with its own on-screen keyboard.
+A web browser built to be driven entirely by an Xbox controller — no mouse, no keyboard,
+no Steam Input remapping. Made for watching, searching and browsing from the couch, as a
+non-Steam game tile in Steam Big Picture.
+
+Built on WebView2 (the Chromium engine that ships with Windows).
+
+## Features
+
+- **Full controller navigation** — D-pad jumps between links and buttons on the page
+  (not just a mouse-emulated cursor, though the right stick gives you a free cursor too)
+- **Private by default** — new tabs save nothing (no history, cookies or form data);
+  flip a tab to normal mode when you actually want to stay logged in somewhere
+- **On-screen keyboard** built for a controller, with letters/symbols layouts
+- **Tabs**, zoom, and a Menu overlay for everything else
+- Everything scales for a TV viewed from a couch
+
+## Requirements
+
+- Windows 10/11, 64-bit
+- An Xbox (XInput-compatible) controller
+- To **build**: nothing extra — `build.ps1` installs the .NET 8 SDK for you if it's missing
+- To **run** the built exe: nothing — it's a self-contained single file, no .NET install needed
 
 ## Build
 
@@ -9,7 +29,18 @@ Built on WebView2 (Microsoft's Chromium engine). Reads Xbox controllers directly
 powershell -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-Output: `dist\CouchBrowser.exe`. The script installs the .NET 8 SDK if it's missing.
+Output: `dist\CouchBrowser.exe`. Copy that one file anywhere; it runs standalone.
+
+## Optional: ad blocker
+
+Couch Browser can load unpacked Chromium extensions from
+`%LOCALAPPDATA%\CouchBrowser\Extensions\<name>\`. To add uBlock Origin Lite:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\get-ublock-lite.ps1
+```
+
+Rerun it anytime to update. Only Manifest V3 extensions work.
 
 ## Add to Steam
 
