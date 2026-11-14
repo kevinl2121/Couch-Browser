@@ -152,12 +152,19 @@ public sealed class BrowserForm : Form
         if (tabs.Count == 0) return;
         input.ResetCursor();
         active = ((i % tabs.Count) + tabs.Count) % tabs.Count;
-        for (int k = 0; k < tabs.Count; k++) tabs[k].View.Visible = k == active;
+
+        // Show the new tab and bring it to front before hiding the rest, so there's
+        // no frame where every WebView2 is hidden and the black form background flashes.
+        var shown = ActiveTab;
+        shown.View.Visible = true;
+        shown.View.BringToFront();
+        foreach (var t in tabs) if (t != shown) t.View.Visible = false;
+
         keyboard.Visible = false;
         menu.Visible = false;
-        videoFullscreen = ActiveTab.IsVideoFullscreen;
+        videoFullscreen = shown.IsVideoFullscreen;
         DoLayout();
-        ActiveTab.View.Focus();
+        shown.View.Focus();
     }
 
     internal void NextTab(int delta) => SelectTab(active + delta);
@@ -200,12 +207,40 @@ public sealed class BrowserForm : Form
             ("New private tab", () => { _ = OpenTab(true, Home); }),
             ("New normal tab", () => { _ = OpenTab(false, Home); }),
             (t.Private ? "Switch this tab to normal mode" : "Switch this tab to private mode", () => SwitchMode()),
+            ("Add bookmark", () => Bookmarks.Add(t.Title, t.Url)),
+            ("Bookmarks", () => OpenBookmarks()),
+            ("Remove bookmark", () => OpenBookmarks(removeMode: true)),
             ("Reload", () => t.Core?.Reload()),
             ("Zoom in", () => Zoom(0.1)),
             ("Zoom out", () => Zoom(-0.1)),
+            ("Minimize (keep playing)", () => WindowState = FormWindowState.Minimized),
             ("Close tab", () => CloseTab()),
             ("Exit Couch Browser", () => Close()),
         };
+        menu.Items = items;
+        DoLayout();
+        menu.Open(items);
+    }
+
+    void OpenBookmarks(bool removeMode = false)
+    {
+        var saved = Bookmarks.Load();
+        List<(string Label, Action Run)> items;
+        if (saved.Count == 0)
+        {
+            items = new() { ("No bookmarks yet", () => { }) };
+        }
+        else
+        {
+            items = saved.Select(b =>
+            {
+                string label = removeMode ? "Remove: " + b.Title : b.Title;
+                Action run = removeMode
+                    ? () => { Bookmarks.Remove(b.Url); OpenBookmarks(true); }
+                    : () => Navigate(b.Url);
+                return (label, run);
+            }).ToList();
+        }
         menu.Items = items;
         DoLayout();
         menu.Open(items);

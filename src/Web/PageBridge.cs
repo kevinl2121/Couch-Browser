@@ -66,8 +66,36 @@ public sealed class PageBridge
 
     public void HideCursor() => _ = RunJs("window.__couch && __couch.hideCursor()");
 
-    public void Wheel(double x, double y, double dy) =>
-        _ = Send("Input.dispatchMouseEvent", new { type = "mouseWheel", x, y, deltaX = 0, deltaY = dy });
+    // Coalesce scroll input: on a heavy page the previous dispatch may still be in
+    // flight when the next tick's scroll arrives. Firing overlapping calls backs up
+    // and lands as a visible jump/flicker, so pile up the delta and send it as one
+    // call once the in-flight dispatch completes.
+    double pendingWheelDy;
+    double wheelX, wheelY;
+    bool wheelBusy;
+
+    public void Wheel(double x, double y, double dy)
+    {
+        pendingWheelDy += dy;
+        wheelX = x; wheelY = y;
+        if (wheelBusy) return;
+        wheelBusy = true;
+        _ = FlushWheel();
+    }
+
+    async Task FlushWheel()
+    {
+        try
+        {
+            while (Math.Abs(pendingWheelDy) > 0.01)
+            {
+                double dy = pendingWheelDy;
+                pendingWheelDy = 0;
+                await Send("Input.dispatchMouseEvent", new { type = "mouseWheel", x = wheelX, y = wheelY, deltaX = 0, deltaY = dy });
+            }
+        }
+        finally { wheelBusy = false; }
+    }
 
     // ---------- Keyboard ----------
     public void InsertText(string text) => _ = Send("Input.insertText", new { text });
