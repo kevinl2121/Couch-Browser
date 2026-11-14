@@ -3,4 +3,5 @@ obj/
 dist/
 .vs/
 .vscode/
-*.userclaude.md
+*.user
+claude.md
